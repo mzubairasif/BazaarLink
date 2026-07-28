@@ -1,43 +1,45 @@
 # Antigravity Agent Configuration for BazaarLink
 
-## Mission
-You are building BazaarLink, an MVP for a hyperlocal reverse-marketplace Android app designed to connect buyers and sellers in dense, unorganized markets (like Saddar, Karachi) in real-time. You have exactly 12 days to complete a functional prototype. Speed, stability, and simplicity are paramount.
+## Mission & Competition Focus
+You are building **BazaarLink**, an MVP for a hyperlocal reverse-marketplace Android app designed to connect buyers and sellers in dense, unorganized markets (like Saddar, Karachi) in real-time. 
+
+🏆 **Competition Context:** **ibex. iSprint Challenge (Round 2: The Blueprint - Karachi 2026)**.
+Total Prize Pool: **PKR 1,750,000**. See full competition details in [ISPRINT_BLUEPRINT.md](file:///c:/Users/Zaid/Downloads/BazaarLink-main/ISPRINT_BLUEPRINT.md).
+
+---
 
 ## The Team
-The human users (Zaid, Ahsan, and I) are systems architects. We DO NOT write Kotlin. You (the agent swarm) are fully responsible for generating, debugging, and self-healing all code. If you encounter an error, fix it autonomously—do not wait for our input unless you require a fundamental architectural decision.
+The human users (Zaid, Ahsan, and systems architects) DO NOT write Kotlin code. You (the agent swarm) are fully responsible for generating, debugging, and self-healing all code. If you encounter an error, fix it autonomously.
+
+---
 
 ## Core Rules of Engagement
 
 ### 1. Technology Constraints (STRICT)
 *   **Language:** Kotlin only. No Java.
 *   **UI Framework:** Jetpack Compose ONLY. Do absolutely zero XML layout design. All UI must be declarative.
-*   **Backend:** Firebase (Firestore + Firebase Auth).
-*   **Architecture:** Use basic MVVM (Model-View-ViewModel). Do not implement Clean Architecture, Use Cases, or complex Repository patterns. We need it functional, not enterprise-ready.
-*   **Dependency Injection:** Do not use Dagger or Hilt. Manual dependency injection or simple ViewModel instantiation is required to save time and reduce build complexity.
-*   **Navigation:** Use standard Jetpack Navigation Compose.
+*   **Backend:** Firebase (Firestore + Firebase Auth + Firebase Storage).
+*   **Architecture:** Basic MVVM (Model-View-ViewModel). No Dagger or Hilt.
+*   **Navigation:** Standard Jetpack Navigation Compose.
 
 ### 2. Database Design (Firestore)
-*   Keep the data structure entirely flat. Do not nest sub-collections unnecessarily.
-*   We need exactly three primary collections:
-    1.  `users` (Stores buyer/vendor role and location).
-    2.  `requests` (Stores the broadcasted buyer queries, tags, and status).
-    3.  `quotes` (Stores the vendor bids tied to a specific `requestId`).
-*   Denormalize data if it saves read operations or complex queries.
+*   Flat data structure: `users`, `requests`, `quotes`, `messages`, `chats`.
 
 ### 3. UI/UX Directives (Jetpack Compose)
-*   **Minimalist Design:** Stick to Material 3 standard components. Do not spend time on custom animations or complex styling unless explicitly requested.
-*   **State Hoisting:** Keep UI state management simple. Use `StateFlow` or `LiveData` within the ViewModels to drive Compose updates.
-*   **Localization Ready:** Hardcode ZERO text strings in the UI components. Every single string MUST be stored in `res/values/strings.xml` to allow for rapid English/Urdu switching.
+*   **Material 3 Design System:** Modern, dark/light theme, clean Karachi-adapted UI.
+*   **Localization Ready:** English / Urdu dynamic switcher ([LocaleHelper.kt](file:///c:/Users/Zaid/Downloads/BazaarLink-main/app/src/main/java/com/bazaarlink/app/util/LocaleHelper.kt)) supported via `strings.xml` and `values-ur/strings.xml`.
 
-### 4. Development Workflow & Self-Healing
-*   **Focus on the Core Loop:** The only features that matter are the Buyer broadcasting a request -> the Vendor seeing the request and submitting a quote -> the Buyer accepting the quote. If a feature does not directly serve this loop, ignore it.
-*   **Faking Features:** We are building a demo. Hardcode the vendor onboarding. Hardcode the "Connects" wallet logic (just show a static number). Do not integrate real payment gateways.
-*   **Error Handling:** When a build fails or an app crashes, read the stack trace, identify the breaking change, and apply the fix. Never explain the fix to the user and ask them to copy-paste it. You must apply the code changes directly.
-*   **No Placeholders:** Never generate code with comments like `// TODO: Implement later` for critical path logic. If a function is needed for the MVP loop, write the full implementation.
+### 4. ibex iSprint Round 2 Evaluation Pillars
+All features & code must align with the **6 ibex Evaluation Criteria**:
+1.  **Solution Clarity:** Simple 3-step loop (Query → Bids → E-Receipt Deal).
+2.  **Execution Feasibility:** Bulletproof Kotlin + Firebase working prototype with press-and-hold voice notes, photos, and matching 3-digit E-Receipt claim codes.
+3.  **Self-Sustainability:** Vendor Connects monetization economy (`connectsBalance` deduction per quote).
+4.  **Scalability Logic:** Replicable zonal structure (Saddar → Tariq Road → Urdu Bazar → Gulshan).
+5.  **Problem-Solution Fit:** Solves unorganized Karachi market friction.
+6.  **Awareness of Gaps:** Mitigates merchant tech barriers (Voice Notes support) & trust verification.
 
-## Priority Tasks for Agent Swarm
-1.  Initialize the standard Android project structure with Compose dependencies.
-2.  Set up the Firebase integration and establish the Firestore connection.
-3.  Generate the Buyer UI (Home Search -> Waiting Radar -> Quote Feed).
-4.  Generate the Vendor UI (Incoming Request Feed -> Quote Input Pad).
-5.  Wire the ViewModels to execute the real-time Firebase read/writes.
+---
+
+## Development Workflow & Self-Healing
+*   **Focus on the Core Loop:** Buyer query -> Vendor live bid -> Buyer acceptance -> E-Receipt & Chat.
+*   **No Placeholders:** Write full, production-ready Kotlin code for every feature.

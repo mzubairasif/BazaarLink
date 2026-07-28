@@ -426,6 +426,27 @@ class BazaarLinkRepositoryImpl(
                 Log.d("BazaarLink", "createChat: chat $chatId already exists")
                 return Result.success(chatId)
             }
+
+            // Fetch request, quote, and user details to populate E-Receipt
+            val reqSnap = withTimeoutOrNull(3000L) { firestore.collection("requests").document(requestId).get().await() }
+            val itemQuery = reqSnap?.getString("rawQuery") ?: ""
+            val acceptedQuoteId = reqSnap?.getString("acceptedQuoteId") ?: ""
+            
+            var offeredPricePKR = 0.0
+            var agreedNote = ""
+            if (acceptedQuoteId.isNotBlank()) {
+                val qSnap = withTimeoutOrNull(3000L) { firestore.collection("quotes").document(acceptedQuoteId).get().await() }
+                offeredPricePKR = qSnap?.getDouble("offeredPricePKR") ?: 0.0
+                agreedNote = qSnap?.getString("note") ?: ""
+            }
+
+            val buyerSnap = withTimeoutOrNull(3000L) { firestore.collection("users").document(buyerId).get().await() }
+            val vendorSnap = withTimeoutOrNull(3000L) { firestore.collection("users").document(vendorId).get().await() }
+            val buyerPhone = buyerSnap?.getString("phoneNumber") ?: ""
+            val vendorPhone = vendorSnap?.getString("phoneNumber") ?: ""
+
+            val randomClaimCode = (100..999).random().toString()
+
             val data = hashMapOf(
                 "chatId" to chatId,
                 "requestId" to requestId,
@@ -435,6 +456,12 @@ class BazaarLinkRepositoryImpl(
                 "vendorDisplayName" to vendorDisplayName,
                 "buyerNicknameForVendor" to "",
                 "vendorNicknameForBuyer" to "",
+                "claimCode" to randomClaimCode,
+                "offeredPricePKR" to offeredPricePKR,
+                "agreedNote" to agreedNote,
+                "buyerPhone" to buyerPhone,
+                "vendorPhone" to vendorPhone,
+                "itemQuery" to itemQuery,
                 "lastMessage" to "",
                 "lastMessageAt" to Date(),
                 "createdAt" to Date()
@@ -442,7 +469,7 @@ class BazaarLinkRepositoryImpl(
             withTimeoutOrNull(8000L) {
                 firestore.collection("chats").document(chatId).set(data).await()
             }
-            Log.d("BazaarLink", "createChat: created chat $chatId")
+            Log.d("BazaarLink", "createChat: created chat $chatId with claimCode #$randomClaimCode")
             Result.success(chatId)
         } catch (e: Exception) {
             Log.e("BazaarLink", "createChat failed: ${e.message}", e)

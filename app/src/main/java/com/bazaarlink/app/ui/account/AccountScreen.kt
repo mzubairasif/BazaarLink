@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Shop
@@ -225,6 +226,32 @@ fun AccountScreen(
                                 if (isAlreadyRegistered) "Switch to Vendor Mode" else "Become a Vendor (Register Shop)"
                             } else "Switch to Buyer Mode",
                             style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+
+                // ── Language Switcher Button (English / Urdu) ────────────────
+                val context = androidx.compose.ui.platform.LocalContext.current
+                var currentLang by remember { mutableStateOf(com.bazaarlink.app.util.LocaleHelper.getLanguage()) }
+
+                OutlinedButton(
+                    onClick = {
+                        val newLang = if (currentLang == "en") "ur" else "en"
+                        com.bazaarlink.app.util.LocaleHelper.setLocale(context, newLang)
+                        currentLang = newLang
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (currentLang == "en") "🌐 Language: English (Switch to اردو)" else "🌐 زبان: اردو (Switch to English)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }

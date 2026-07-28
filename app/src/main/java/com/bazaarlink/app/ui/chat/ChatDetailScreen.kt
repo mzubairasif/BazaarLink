@@ -37,7 +37,9 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
@@ -222,6 +224,16 @@ fun ChatDetailScreen(
         )
     }
 
+    var showEReceiptDialog by remember { mutableStateOf(false) }
+    val otherPhone = chat?.let { c -> if (isBuyer) c.vendorPhone else c.buyerPhone } ?: ""
+
+    if (showEReceiptDialog && chat != null) {
+        com.bazaarlink.app.ui.common.EReceiptDialog(
+            chat = chat!!,
+            onDismiss = { showEReceiptDialog = false }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -236,6 +248,23 @@ fun ChatDetailScreen(
                     }
                 },
                 actions = {
+                    // Direct Call button
+                    IconButton(onClick = {
+                        val phoneNum = otherPhone.ifBlank { "03001234567" }
+                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:$phoneNum")
+                        }
+                        context.startActivity(intent)
+                    }) {
+                        Icon(imageVector = Icons.Default.Phone, contentDescription = "Call", tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+
+                    // E-Receipt button
+                    IconButton(onClick = { showEReceiptDialog = true }) {
+                        Icon(imageVector = Icons.Default.Receipt, contentDescription = "E-Receipt", tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+
+                    // Edit Nickname button
                     IconButton(onClick = {
                         nicknameInput = if (isBuyer) chat?.buyerNicknameForVendor ?: "" else chat?.vendorNicknameForBuyer ?: ""
                         showNicknameDialog = true

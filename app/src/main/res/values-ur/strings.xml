@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Metadata -->
+    <string name="app_name">بازار لنک</string>
+
+    <!-- Authentication / Onboarding -->
+    <string name="auth_title">بازار لنک</string>
+    <string name="auth_subtitle">صدر کی سب سے بڑی موبائل مارکیٹ</string>
+    <string name="welcome_headline">صدر مارکیٹ کے دکانداروں سے براہ راست رابطہ کریں</string>
+    <string name="login">لاگ ان</string>
+    <string name="register">رجسٹر کریں</string>
+    <string name="phone_number">فون نمبر</string>
+    <string name="display_name">مکمل نام</string>
+    <string name="role_buyer">خریدار (Buyer)</string>
+    <string name="role_vendor">دکاندار (Saddar Merchant)</string>
+    <string name="shop_name">دوکان کا نام</string>
+    <string name="market_zone">مارکیٹ زون (مثلاً اسٹار سٹی مال)</string>
+    <string name="select_categories">اپنی زمرہ جات منتخب کریں</string>
+    <string name="category_mobile_parts">موبائل پارٹس</string>
+    <string name="category_accessories">موبائل ایکسیسریز</string>
+    <string name="category_repair">ریپیئرنگ سروسز</string>
+    <string name="switch_role">رول تبدیل کریں</string>
+    <string name="sign_in_with_google">گوگل کے ساتھ سائن ان کریں</string>
+    <string name="onboarding_title">اپنی پروفائل مکمل کریں</string>
+    <string name="complete_profile">محفوظ کریں اور آگے بڑھیں</string>
+    <string name="cnic">شناختی کارڈ نمبر (CNIC)</string>
+
+    <!-- Buyer Flow -->
+    <string name="buyer_home_title">آج آپ کو کیا چاہئے؟</string>
+    <string name="buyer_home_subtitle">صدر کے 100+ دکانداروں کو اپنی ضرورت بھیجیں</string>
+    <string name="query_placeholder">مثلاً: آئی فون 13 پرو کی اوریجنل او ایل ای ڈی اسکرین پینل کی ضرورت ہے...</string>
+    <string name="location_label">موجودہ مارکیٹ لوکیشن</string>
+    <string name="default_location">اسٹار سٹی مال، صدر، کراچی</string>
+    <string name="broadcast_request">صدر کے تمام دکانداروں کو بھیجیں</string>
+    <string name="broadcasting_loading">درخواست بھیجی جا رہی ہے...</string>
+    
+    <string name="waiting_radar_title">صدر میں تلاش جاری ہے...</string>
+    <string name="waiting_radar_subtitle">دکاندار اسٹاک چیک کر رہے ہیں</string>
+    <string name="quotes_received">موصول شدہ ریٹ (%1$d)</string>
+    <string name="view_quotes_button">موصول شدہ ریٹ دیکھیں (%1$d)</string>
+    <string name="no_quotes_yet">ابھی تک کوئی ریٹ موصول نہیں ہوا، دکاندار 1 سے 3 منٹ میں جواب دیتے ہیں۔</string>
+    <string name="accept_quote">ڈیل پکی کریں (Accept Quote)</string>
+    <string name="quote_accepted_title">ڈیل پکی ہو گئی!</string>
+    <string name="quote_accepted_subtitle">یہ رسید صدر میں دکاندار کو دکھائیں</string>
+    <string name="vendor_shop">دوکان</string>
+    <string name="vendor_rating">ریٹنگ</string>
+    <string name="offered_price_label">پیش کردہ قیمت</string>
+    <string name="currency_pkr">روپے %1$,.0f</string>
+    <string name="warranty_note">وارنٹی / نوٹ</string>
+
+    <!-- Vendor Flow -->
+    <string name="vendor_dashboard_title">صدر کی آمدہ درخواستیں</string>
+    <string name="vendor_dashboard_subtitle">آپ کے زون میں خریداروں کے لائیو سوالات</string>
+    <string name="no_requests_found">فی الحال صدر میں کوئی نئی درخواست نہیں ہے۔</string>
+    <string name="send_quote">اپنی قیمت / ریٹ بھیجیں</string>
+    <string name="offered_price">قیمت (روپے)</string>
+    <string name="quote_note_placeholder">اوریجنل سامان، 3 دن کی چیک وارنٹی...</string>
+    <string name="connects_balance">⚡ %1$d کنیکٹس</string>
+    <string name="submitting_quote">ریٹ بھیجا جا رہا ہے...</string>
+    <string name="quote_sent_success">ریٹ خریدار کو بھیج دیا گیا!</string>
+    <string name="request_detail_title">خریدار کی درخواست کی تفصیلات</string>
+    <string name="buyer_request_label">خریدار کی ضرورت</string>
+    <string name="your_quote_label">آپ کی پیشکش</string>
+    <string name="add_photos_optional">تصاویر شامل کریں (آپشنل)</string>
+
+    <!-- Common & Controls -->
+    <string name="cancel">منسوخ کریں</string>
+    <string name="submit">جمع کریں</string>
+    <string name="done">مکمل</string>
+    <string name="reset">نئی درخواست</string>
+    <string name="back">واپس</string>
+
+    <!-- Chat -->
+    <string name="chats_title">چیٹس</string>
+    <string name="chats_empty">ابھی تک کوئی چیٹ نہیں ہے۔ ڈیل پکی کر کے چیٹ شروع کریں۔</string>
+    <string name="chat_no_messages_yet">کوئی پیغام نہیں</string>
+    <string name="chat_unknown_vendor">دکاندار</string>
+    <string name="chat_unknown_buyer">خریدار</string>
+    <string name="chat_input_hint">پیغام لکھیں…</string>
+    <string name="chat_send_image">تصویر بھیجیں</string>
+    <string name="chat_recording">ریکارڈنگ ہو رہی ہے… بھیجنے کیلئے چھوڑیں</string>
+    <string name="chat_set_nickname_title">نام رکھیں</string>
+    <string name="chat_created_hint">پرائیویٹ چیٹ کھل گئی ہے۔ نیچے پیغام لکھیں۔</string>
+    <string name="chat_go_to_chat">چیٹ پر جائیں</string>
+
+    <!-- Bottom tabs -->
+    <string name="tab_my_request">میری درخواست</string>
+    <string name="tab_chats">چیٹس</string>
+    <string name="tab_requests">درخواستیں</string>
+</resources>

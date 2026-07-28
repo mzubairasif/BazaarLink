@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Metadata -->
+    <string name="app_name">BazaarLink</string>
+
+    <!-- Authentication / Onboarding -->
+    <string name="auth_title">BazaarLink</string>
+    <string name="auth_subtitle">Saddar\'s Hyperlocal Reverse-Marketplace</string>
+    <string name="welcome_headline">Connect directly with Saddar merchants in real-time</string>
+    <string name="login">Login</string>
+    <string name="register">Register / Continue</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="display_name">Full Name</string>
+    <string name="role_buyer">Buyer</string>
+    <string name="role_vendor">Vendor (Saddar Merchant)</string>
+    <string name="shop_name">Shop Name</string>
+    <string name="market_zone">Market Zone (e.g. Star City Mall)</string>
+    <string name="select_categories">Select Your Categories</string>
+    <string name="category_mobile_parts">Mobile Parts</string>
+    <string name="category_accessories">Accessories</string>
+    <string name="category_repair">Repair Services</string>
+    <string name="switch_role">Switch Role</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="default_web_client_id">dummy_client_id</string>
+    <string name="onboarding_title">Complete Your Profile</string>
+    <string name="complete_profile">Save &amp; Continue</string>
+    <string name="cnic">CNIC</string>
+
+    <!-- Buyer Flow -->
+    <string name="buyer_home_title">What are you looking for today?</string>
+    <string name="buyer_home_subtitle">Broadcast your request to 100+ Saddar vendors</string>
+    <string name="query_placeholder">e.g., Need original iPhone 13 Pro OLED screen panel...</string>
+    <string name="location_label">Current Market Location</string>
+    <string name="default_location">Star City Mall, Saddar, Karachi</string>
+    <string name="broadcast_request">Broadcast Request to Saddar</string>
+    <string name="broadcasting_loading">Broadcasting query...</string>
+    
+    <string name="waiting_radar_title">Broadcasting to Saddar...</string>
+    <string name="waiting_radar_subtitle">Merchants in Star City &amp; Saddar are checking stock</string>
+    <string name="quotes_received">Live Quotes Received (%1$d)</string>
+    <string name="view_quotes_button">View Received Quotes (%1$d)</string>
+    <string name="no_quotes_yet">No quotes submitted yet. Vendors usually respond in 1-3 minutes.</string>
+    <string name="accept_quote">Accept Quote</string>
+    <string name="quote_accepted_title">Deal Closed! Vendor Connected</string>
+    <string name="quote_accepted_subtitle">Show this receipt at the vendor\'s shop in Saddar</string>
+    <string name="vendor_shop">Shop</string>
+    <string name="vendor_rating">Rating</string>
+    <string name="offered_price_label">Offered Price</string>
+    <string name="currency_pkr">PKR %1$,.0f</string>
+    <string name="warranty_note">Note / Check Warranty</string>
+
+    <!-- Vendor Flow -->
+    <string name="vendor_dashboard_title">Saddar Incoming Requests</string>
+    <string name="vendor_dashboard_subtitle">Live buyer inquiries in your market zone</string>
+    <string name="no_requests_found">No active requests in Saddar right now.</string>
+    <string name="send_quote">Submit Bid / Quote</string>
+    <string name="offered_price">Price (PKR)</string>
+    <string name="quote_note_placeholder">Original condition, 3 days check warranty...</string>
+    <string name="connects_balance">⚡ %1$d Connects</string>
+    <string name="submitting_quote">Submitting quote...</string>
+    <string name="quote_sent_success">Quote successfully sent to buyer!</string>
+    <string name="request_detail_title">Buyer Request Detail</string>
+    <string name="buyer_request_label">BUYER IS LOOKING FOR</string>
+    <string name="your_quote_label">Your Quote</string>
+    <string name="add_photos_optional">Add Photos (optional)</string>
+
+    <!-- Common & Controls -->
+    <string name="cancel">Cancel</string>
+    <string name="submit">Submit</string>
+    <string name="done">Done</string>
+    <string name="reset">New Request</string>
+    <string name="back">Back</string>
+    
+    <!-- Errors & Statuses -->
+    <string name="error_empty_fields">Please fill in all required fields</string>
+    <string name="error_auth_failed">Authentication failed</string>
+    <string name="error_insufficient_connects">Vendor has insufficient connects balance to accept quote.</string>
+    <string name="error_request_closed">This request is no longer active or has already been accepted.</string>
+    <string name="error_quote_failed">Failed to process quote acceptance.</string>
+    <string name="status_broadcasting">BROADCASTING</string>
+    <string name="status_accepted">ACCEPTED</string>
+    <string name="status_expired">EXPIRED</string>
+    <string name="status_pending">PENDING</string>
+    <string name="mic_button">Speak (Urdu)</string>
+    <string name="add_photos_button">Add Photos (min 3)</string>
+    <string name="error_min_photos">Select at least 3 photos</string>
+    <string name="tags_section_label">Tags</string>
+    <string name="tags_browse">+ Browse</string>
+    <string name="tags_hide_pool">Hide</string>
+    <string name="tags_all_selected">All tags selected!</string>
+    <string name="remove_tag">Remove tag</string>
+    <string name="reference_photos_label">Reference Photos</string>
+    <string name="add_reference_photo">Add Photo</string>
+    <string name="remove_photo">Remove photo</string>
+    <string name="go_broadcast">Go — Broadcast to Saddar</string>
+    <string name="error_empty_query">Please describe what you\'re looking for</string>
+
+    <!-- Chat -->
+    <string name="chats_title">Chats</string>
+    <string name="chats_empty">No chats yet. Accept a quote to start chatting.</string>
+    <string name="chat_no_messages_yet">No messages yet</string>
+    <string name="chat_unknown_vendor">Vendor</string>
+    <string name="chat_unknown_buyer">Buyer</string>
+    <string name="chat_input_hint">Type a message…</string>
+    <string name="chat_send_image">Send image</string>
+    <string name="chat_recording">Recording… Release to send</string>
+    <string name="chat_set_nickname_title">Set nickname</string>
+    <string name="chat_created_hint">A private chat has been opened. Tap below to start messaging.</string>
+    <string name="chat_go_to_chat">Go to Chat</string>
+
+    <!-- Bottom tabs -->
+    <string name="tab_my_request">My Request</string>
+    <string name="tab_chats">Chats</string>
+    <string name="tab_requests">Requests</string>
+</resources>

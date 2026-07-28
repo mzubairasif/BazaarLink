@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "374593325061",
+    "project_id": "bazaar-link",
+    "storage_bucket": "bazaar-link.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374593325061:android:83643957c619ca8138f46c",
+        "android_client_info": {
+          "package_name": "com.bazaarlink.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAA1Po1aC4BLTDtoJHQRoMQzAic9qNmt-8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

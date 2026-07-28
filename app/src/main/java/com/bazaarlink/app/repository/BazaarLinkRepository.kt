@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 interface BazaarLinkRepository {
     // User profile operations
     suspend fun getUserProfile(userId: String): Result<User?>
+    suspend fun getUserProfileByEmail(email: String): Result<User?>
     suspend fun saveUserProfile(user: User): Result<Unit>
 
     // Local-first user profile (no network, instant)

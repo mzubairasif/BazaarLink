@@ -46,7 +46,11 @@ class AuthViewModel(
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
             try {
-                val profile = repository.getUserProfile(firebaseUser.uid).getOrNull()
+                var profile = repository.getUserProfile(firebaseUser.uid).getOrNull()
+                if (profile == null && !firebaseUser.email.isNullOrBlank()) {
+                    profile = repository.getUserProfileByEmail(firebaseUser.email!!).getOrNull()
+                }
+
                 if (profile != null) {
                     Log.d("BazaarLink", "checkExistingSession: restored session for ${profile.displayName} (${profile.role})")
                     _currentUser.value = profile
@@ -66,12 +70,16 @@ class AuthViewModel(
         }
     }
 
-    /** Called after Google sign-in returns an account. Checks Firestore for existing user profile. */
+    /** Called after Google sign-in returns an account. Checks Firestore for existing user profile by UID and Email. */
     fun onGoogleAccountSelected(uid: String, email: String, displayName: String) {
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
             try {
-                val profile = repository.getUserProfile(uid).getOrNull()
+                var profile = repository.getUserProfile(uid).getOrNull()
+                if (profile == null && email.isNotBlank()) {
+                    profile = repository.getUserProfileByEmail(email).getOrNull()
+                }
+
                 if (profile != null) {
                     Log.d("BazaarLink", "onGoogleAccountSelected: existing user ${profile.displayName} (${profile.role})")
                     _currentUser.value = profile

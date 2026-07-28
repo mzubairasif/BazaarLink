@@ -47,6 +47,30 @@ class BazaarLinkRepositoryImpl(
         }
     }
 
+    override suspend fun getUserProfileByEmail(email: String): Result<User?> {
+        if (email.isBlank()) return Result.success(null)
+        localUsers.values.firstOrNull { it.email.equals(email, ignoreCase = true) }?.let {
+            return Result.success(it)
+        }
+        return try {
+            val snapshot = withTimeoutOrNull(5000L) {
+                firestore.collection("users")
+                    .whereEqualTo("email", email)
+                    .get()
+                    .await()
+            }
+            val userDoc = snapshot?.documents?.firstOrNull()
+            val user = userDoc?.toObject(User::class.java)
+            if (user != null) {
+                localUsers[user.userId] = user
+            }
+            Result.success(user)
+        } catch (e: Exception) {
+            Log.w("BazaarLink", "getUserProfileByEmail error: ${e.message}")
+            Result.success(null)
+        }
+    }
+
     override suspend fun saveUserProfile(user: User): Result<Unit> {
         localUsers[user.userId] = user
         return try {

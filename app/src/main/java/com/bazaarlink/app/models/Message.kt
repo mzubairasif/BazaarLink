@@ -1,5 +1,7 @@
 package com.bazaarlink.app.models
 
+import com.google.firebase.firestore.Exclude
+import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /** Types of chat messages */
@@ -21,5 +23,14 @@ data class Message(
     // Duration in seconds for voice messages (0 if not a voice message)
     val voiceDurationSecs: Int = 0,
     val timestamp: Long = System.currentTimeMillis(),
-    val createdAt: Date = Date()
+    @ServerTimestamp
+    val createdAt: Date? = null,
+    val replyToMessageId: String = "",
+    val replyToSenderName: String = "",
+    val replyToTextPreview: String = "",
+    @get:Exclude
+    var isSending: Boolean = false
 )
+
+
+

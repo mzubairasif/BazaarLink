@@ -35,6 +35,7 @@ fun BuyerShell(
     buyerId: String,
     initialTab: Int = 0,
     onBroadcastStarted: (requestId: String) -> Unit,
+    onViewSentRequestsClicked: () -> Unit = {},
     onChatClicked: (chatId: String) -> Unit,
     onSignOut: () -> Unit,
     onRoleSwitched: () -> Unit
@@ -60,8 +61,9 @@ fun BuyerShell(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     icon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
-                    label = { Text(text = "Account") }
+                    label = { Text(text = stringResource(id = R.string.tab_account)) }
                 )
+
             }
         }
     ) { innerPadding ->
@@ -70,8 +72,10 @@ fun BuyerShell(
                 0 -> BuyerHomeScreen(
                     viewModel = buyerViewModel,
                     buyerId = buyerId,
-                    onBroadcastStarted = onBroadcastStarted
+                    onBroadcastStarted = onBroadcastStarted,
+                    onViewSentRequestsClicked = onViewSentRequestsClicked
                 )
+
                 1 -> ChatListScreen(
                     viewModel = chatViewModel,
                     currentUserId = buyerId,

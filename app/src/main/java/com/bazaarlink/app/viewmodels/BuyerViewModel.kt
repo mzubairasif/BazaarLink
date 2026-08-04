@@ -7,6 +7,7 @@ import com.bazaarlink.app.di.ServiceLocator
 import com.bazaarlink.app.models.GeoLocation
 import com.bazaarlink.app.models.Quote
 import com.bazaarlink.app.models.Request
+import com.bazaarlink.app.models.Review
 import com.bazaarlink.app.models.TagModel
 import com.bazaarlink.app.repository.BazaarLinkRepository
 import kotlinx.coroutines.Job
@@ -34,6 +35,14 @@ class BuyerViewModel(
     private val _quotes = MutableStateFlow<List<Quote>>(emptyList())
     val quotes: StateFlow<List<Quote>> = _quotes.asStateFlow()
 
+    // Buyer's sent requests from last 5 days
+    private val _buyerRequests = MutableStateFlow<List<Request>>(emptyList())
+    val buyerRequests: StateFlow<List<Request>> = _buyerRequests.asStateFlow()
+
+    // Currently focused single request details
+    private val _activeRequest = MutableStateFlow<Request?>(null)
+    val activeRequest: StateFlow<Request?> = _activeRequest.asStateFlow()
+
     // Suggested tags fetched from Firestore
     private val _suggestedTags = MutableStateFlow<List<TagModel>>(emptyList())
     val suggestedTags: StateFlow<List<TagModel>> = _suggestedTags.asStateFlow()
@@ -42,7 +51,21 @@ class BuyerViewModel(
     private val _selectedTags = MutableStateFlow<Set<String>>(emptySet())
     val selectedTags: StateFlow<Set<String>> = _selectedTags.asStateFlow()
 
+    // Vendor reviews
+    private val _vendorReviews = MutableStateFlow<List<Review>>(emptyList())
+
+    val vendorReviews: StateFlow<List<Review>> = _vendorReviews.asStateFlow()
+
+    private val _hasReviewed = MutableStateFlow<Boolean>(false)
+    val hasReviewed: StateFlow<Boolean> = _hasReviewed.asStateFlow()
+
     private var quotesJob: Job? = null
+    private var requestsJob: Job? = null
+    private var activeRequestJob: Job? = null
+    private var reviewsJob: Job? = null
+    private var hasReviewedJob: Job? = null
+
+
 
     init {
         seedAndLoadTags()
@@ -106,7 +129,26 @@ class BuyerViewModel(
         }
     }
 
-    private fun listenForQuotes(requestId: String) {
+    fun loadBuyerRequests(buyerId: String, days: Int = 5) {
+        requestsJob?.cancel()
+        requestsJob = viewModelScope.launch {
+            repository.getBuyerRequests(buyerId, days).collect { reqList ->
+                _buyerRequests.value = reqList
+            }
+        }
+    }
+
+    fun loadRequestDetails(requestId: String) {
+        activeRequestJob?.cancel()
+        activeRequestJob = viewModelScope.launch {
+            repository.getRequest(requestId).collect { req ->
+                _activeRequest.value = req
+            }
+        }
+        listenForQuotes(requestId)
+    }
+
+    fun listenForQuotes(requestId: String) {
         quotesJob?.cancel()
         quotesJob = viewModelScope.launch {
             repository.getQuotesForRequest(requestId).collect { quoteList ->
@@ -127,10 +169,75 @@ class BuyerViewModel(
         }
     }
 
-    fun resetState() {
-        quotesJob?.cancel()
-        _quotes.value = emptyList()
-        _selectedTags.value = emptySet()
+    fun loadVendorReviews(vendorId: String) {
+        reviewsJob?.cancel()
+        reviewsJob = viewModelScope.launch {
+            repository.getVendorReviews(vendorId).collect { revs ->
+                _vendorReviews.value = revs
+            }
+        }
+    }
+
+    fun checkHasReviewed(requestId: String, buyerId: String) {
+        hasReviewedJob?.cancel()
+        hasReviewedJob = viewModelScope.launch {
+            repository.hasBuyerReviewedRequest(requestId, buyerId).collect { hasRev ->
+                _hasReviewed.value = hasRev
+            }
+        }
+    }
+
+    fun submitReview(
+        vendorId: String,
+        buyerId: String,
+        buyerDisplayName: String,
+        requestId: String,
+        rating: Double,
+        comment: String,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        if (buyerId.isNotBlank() && buyerId == vendorId) {
+            onError("You cannot rate your own vendor account.")
+            return
+        }
+        val review = Review(
+            vendorId = vendorId,
+            buyerId = buyerId,
+            buyerDisplayName = buyerDisplayName,
+            requestId = requestId,
+            rating = rating,
+            comment = comment
+        )
+        viewModelScope.launch {
+            repository.submitReview(review)
+                .onSuccess {
+                    _hasReviewed.value = true
+                    loadVendorReviews(vendorId)
+                    onSuccess()
+                }
+                .onFailure {
+                    onError(it.message ?: "Failed to submit review")
+                }
+        }
+    }
+
+    fun resetUiState() {
         _uiState.value = BuyerUiState.Idle
     }
+
+    fun resetState() {
+        quotesJob?.cancel()
+        requestsJob?.cancel()
+        activeRequestJob?.cancel()
+        reviewsJob?.cancel()
+        hasReviewedJob?.cancel()
+        _quotes.value = emptyList()
+        _selectedTags.value = emptySet()
+        _activeRequest.value = null
+        _vendorReviews.value = emptyList()
+        _hasReviewed.value = false
+        _uiState.value = BuyerUiState.Idle
+    }
+
 }

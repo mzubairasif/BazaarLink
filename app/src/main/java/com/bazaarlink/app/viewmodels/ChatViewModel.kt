@@ -82,24 +82,69 @@ class ChatViewModel(
         }
     }
 
-    fun sendText(chatId: String, senderId: String, text: String) {
+    fun sendText(
+        chatId: String,
+        senderId: String,
+        text: String,
+        replyToMessageId: String = "",
+        replyToSenderName: String = "",
+        replyToTextPreview: String = ""
+    ) {
         if (text.isBlank()) return
         _uiState.value = ChatUiState.Sending
         viewModelScope.launch {
-            repository.sendTextMessage(chatId, senderId, text)
+            repository.sendTextMessage(chatId, senderId, text, replyToMessageId, replyToSenderName, replyToTextPreview)
                 .onSuccess { _uiState.value = ChatUiState.Idle }
                 .onFailure { _uiState.value = ChatUiState.Error(it.message ?: "Send failed") }
         }
     }
 
-    fun sendVoice(chatId: String, senderId: String, localFileUri: Uri, durationSecs: Int) {
+    fun sendVoice(
+        chatId: String,
+        senderId: String,
+        localFileUri: Uri,
+        durationSecs: Int,
+        replyToMessageId: String = "",
+        replyToSenderName: String = "",
+        replyToTextPreview: String = ""
+    ) {
+        val tempId = "temp_${System.currentTimeMillis()}"
+        val tempMsg = Message(
+            messageId = tempId,
+            chatId = chatId,
+            senderId = senderId,
+            text = "",
+            type = com.bazaarlink.app.models.MessageType.VOICE,
+            voiceUrl = "",
+            voiceDurationSecs = durationSecs,
+            timestamp = System.currentTimeMillis(),
+            createdAt = java.util.Date(),
+            replyToMessageId = replyToMessageId,
+            replyToSenderName = replyToSenderName,
+            replyToTextPreview = replyToTextPreview,
+            isSending = true
+        )
+        _messages.value = _messages.value + tempMsg
         _uiState.value = ChatUiState.Sending
         viewModelScope.launch {
-            repository.sendVoiceMessage(chatId, senderId, localFileUri, durationSecs)
+            repository.sendVoiceMessage(chatId, senderId, localFileUri, durationSecs, replyToMessageId, replyToSenderName, replyToTextPreview)
                 .onSuccess { _uiState.value = ChatUiState.Idle }
-                .onFailure { _uiState.value = ChatUiState.Error(it.message ?: "Voice send failed") }
+                .onFailure {
+                    _messages.value = _messages.value.filter { it.messageId != tempId }
+                    _uiState.value = ChatUiState.Error(it.message ?: "Voice send failed")
+                }
         }
     }
+
+    fun deleteMessages(chatId: String, messageIds: List<String>) {
+        if (messageIds.isEmpty()) return
+        _messages.value = _messages.value.filter { it.messageId !in messageIds }
+        viewModelScope.launch {
+            repository.deleteMessages(chatId, messageIds)
+        }
+    }
+
+
 
     fun sendImage(chatId: String, senderId: String, imageUri: Uri) {
         _uiState.value = ChatUiState.Sending

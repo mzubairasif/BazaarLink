@@ -1,8 +1,11 @@
 package com.bazaarlink.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -14,6 +17,8 @@ import com.bazaarlink.app.models.User
 import com.bazaarlink.app.ui.buyer.BuyerShell
 import com.bazaarlink.app.ui.buyer.BuyerWaitingRadarScreen
 import com.bazaarlink.app.ui.buyer.QuoteFeedScreen
+import com.bazaarlink.app.ui.buyer.BuyerSentRequestsScreen
+import com.bazaarlink.app.ui.buyer.BuyerRequestDetailsScreen
 import com.bazaarlink.app.ui.chat.ChatDetailScreen
 import com.bazaarlink.app.ui.vendor.VendorShell
 import com.bazaarlink.app.ui.auth.AuthScreen
@@ -21,6 +26,7 @@ import com.bazaarlink.app.viewmodels.AuthViewModel
 import com.bazaarlink.app.viewmodels.BuyerViewModel
 import com.bazaarlink.app.viewmodels.ChatViewModel
 import com.bazaarlink.app.viewmodels.VendorViewModel
+
 
 sealed class Screen(val route: String) {
     object Auth : Screen("auth")
@@ -36,11 +42,18 @@ sealed class Screen(val route: String) {
     object BuyerQuotes : Screen("buyer_quotes/{requestId}/{buyerId}") {
         fun createRoute(requestId: String, buyerId: String) = "buyer_quotes/$requestId/$buyerId"
     }
+    object BuyerSentRequests : Screen("buyer_sent_requests/{buyerId}") {
+        fun createRoute(buyerId: String) = "buyer_sent_requests/$buyerId"
+    }
+    object BuyerRequestDetails : Screen("buyer_request_details/{requestId}/{buyerId}") {
+        fun createRoute(requestId: String, buyerId: String) = "buyer_request_details/$requestId/$buyerId"
+    }
     object VendorShell : Screen("vendor_shell")
     object ChatDetail : Screen("chat/{chatId}/{currentUserId}") {
         fun createRoute(chatId: String, currentUserId: String) = "chat/$chatId/$currentUserId"
     }
 }
+
 
 @Composable
 fun NavGraph(
@@ -51,6 +64,11 @@ fun NavGraph(
     chatViewModel: ChatViewModel = viewModel()
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        authViewModel.checkExistingSession(context)
+    }
 
     NavHost(
         navController = navController,
@@ -92,6 +110,9 @@ fun NavGraph(
                 initialTab = 0,
                 onBroadcastStarted = { requestId ->
                     navController.navigate(Screen.BuyerRadar.createRoute(requestId))
+                },
+                onViewSentRequestsClicked = {
+                    navController.navigate(Screen.BuyerSentRequests.createRoute(actualUid))
                 },
                 onChatClicked = { chatId ->
                     navController.navigate(Screen.ChatDetail.createRoute(chatId, actualUid))
@@ -135,6 +156,9 @@ fun NavGraph(
                 onBroadcastStarted = { requestId ->
                     navController.navigate(Screen.BuyerRadar.createRoute(requestId))
                 },
+                onViewSentRequestsClicked = {
+                    navController.navigate(Screen.BuyerSentRequests.createRoute(actualUid))
+                },
                 onChatClicked = { chatId ->
                     navController.navigate(Screen.ChatDetail.createRoute(chatId, actualUid))
                 },
@@ -161,6 +185,46 @@ fun NavGraph(
         }
 
         composable(
+            route = Screen.BuyerSentRequests.route,
+            arguments = listOf(navArgument("buyerId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val routeBuyerId = backStackEntry.arguments?.getString("buyerId") ?: "demo_buyer"
+            val actualUid = currentUser?.userId ?: routeBuyerId
+            BuyerSentRequestsScreen(
+                viewModel = buyerViewModel,
+                buyerId = actualUid,
+                onBack = { navController.popBackStack() },
+                onRequestClicked = { requestId ->
+                    navController.navigate(Screen.BuyerRequestDetails.createRoute(requestId, actualUid))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.BuyerRequestDetails.route,
+            arguments = listOf(
+                navArgument("requestId") { type = NavType.StringType },
+                navArgument("buyerId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val requestId = backStackEntry.arguments?.getString("requestId") ?: ""
+            val buyerId = backStackEntry.arguments?.getString("buyerId") ?: ""
+            val actualBuyerId = currentUser?.userId ?: buyerId
+            BuyerRequestDetailsScreen(
+                viewModel = buyerViewModel,
+                chatViewModel = chatViewModel,
+                requestId = requestId,
+                buyerId = actualBuyerId,
+                buyerDisplayName = currentUser?.displayName ?: "Buyer",
+                onBack = { navController.popBackStack() },
+                onOpenChat = { chatId ->
+                    navController.navigate(Screen.ChatDetail.createRoute(chatId, actualBuyerId))
+                }
+            )
+        }
+
+
+        composable(
             route = Screen.BuyerRadar.route,
             arguments = listOf(navArgument("requestId") { type = NavType.StringType })
         ) { backStackEntry ->
@@ -168,12 +232,23 @@ fun NavGraph(
             BuyerWaitingRadarScreen(
                 viewModel = buyerViewModel,
                 requestId = requestId,
+                onBack = {
+                    buyerViewModel.resetUiState()
+                    val popped = navController.popBackStack()
+                    if (!popped) {
+                        navController.navigate(Screen.BuyerShell.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
                 onViewQuotesClicked = {
                     val buyerId = currentUser?.userId ?: "demo_buyer"
                     navController.navigate(Screen.BuyerQuotes.createRoute(requestId, buyerId))
                 }
             )
         }
+
+
 
         composable(
             route = Screen.BuyerQuotes.route,

@@ -11,6 +11,7 @@ data class User(
     @DocumentId
     val userId: String = "",
     val email: String = "",
+    val password: String = "",
     val role: String = "BUYER",
     val registeredRoles: List<String> = listOf("BUYER"),
     val displayName: String = "",
@@ -19,6 +20,7 @@ data class User(
     val createdAt: Date = Date(),
     val vendorProfile: VendorProfile? = null
 )
+
 
 data class VendorProfile(
     val shopName: String = "",

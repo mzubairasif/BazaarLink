@@ -26,7 +26,10 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Shop
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.ui.graphics.Color
+
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -70,10 +73,13 @@ fun AccountScreen(
     var shopNameInput by remember { mutableStateOf("") }
     var marketZoneInput by remember { mutableStateOf("Star City Mall, Saddar") }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var currentLang by remember { mutableStateOf(com.bazaarlink.app.util.LocaleHelper.getLanguage(context)) }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "My Account") },
+                title = { Text(text = stringResource(id = R.string.account_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -138,7 +144,7 @@ fun AccountScreen(
                                 .padding(horizontal = 12.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = if (user.role == "VENDOR") "Active Role: Vendor (Merchant)" else "Active Role: Buyer",
+                                text = if (user.role == "VENDOR") stringResource(id = R.string.active_role_vendor) else stringResource(id = R.string.active_role_buyer),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (user.role == "VENDOR") MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onTertiaryContainer
@@ -177,7 +183,7 @@ fun AccountScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Badge, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Text(text = "CNIC: ${user.cnic}", style = MaterialTheme.typography.bodyMedium)
+                                Text(text = "${stringResource(id = R.string.cnic)}: ${user.cnic}", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
 
@@ -186,18 +192,29 @@ fun AccountScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Shop, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Text(text = "Shop: ${vp.shopName} (${vp.marketZone})", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text(text = "${stringResource(id = R.string.vendor_shop)}: ${vp.shopName} (${vp.marketZone})", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Bolt, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Text(text = "Connects Balance: ${vp.connectsBalance}", style = MaterialTheme.typography.bodyMedium)
+                                Text(text = stringResource(id = R.string.connects_balance, vp.connectsBalance), style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = if (vp.totalRatings < 3) "Rating: 🆕 New Merchant"
+                                           else "Rating: ⭐ ${String.format("%.1f", vp.rating)} (${vp.totalRatings} reviews)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // ── Switch Role Button ──────────────────────────────────────────
                 val targetRole = if (user.role == "BUYER") "VENDOR" else "BUYER"
@@ -208,32 +225,32 @@ fun AccountScreen(
                         if (targetRole == "VENDOR" && !isAlreadyRegistered) {
                             showVendorRegDialog = true
                         } else {
-                            authViewModel.switchRole(targetRole)
+                            authViewModel.switchRole(targetRole, context)
                             onRoleSwitched()
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
+                        .height(44.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.SwapHoriz, contentDescription = null)
+                        Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (targetRole == "VENDOR") {
-                                if (isAlreadyRegistered) "Switch to Vendor Mode" else "Become a Vendor (Register Shop)"
-                            } else "Switch to Buyer Mode",
-                            style = MaterialTheme.typography.titleMedium
+                                if (isAlreadyRegistered) stringResource(id = R.string.switch_to_vendor) else stringResource(id = R.string.become_vendor)
+                            } else stringResource(id = R.string.switch_to_buyer),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
 
-                // ── Language Switcher Button (English / Urdu) ────────────────
-                val context = androidx.compose.ui.platform.LocalContext.current
-                var currentLang by remember { mutableStateOf(com.bazaarlink.app.util.LocaleHelper.getLanguage()) }
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // ── Language Switcher Button (English / Urdu) ────────────────
                 OutlinedButton(
                     onClick = {
                         val newLang = if (currentLang == "en") "ur" else "en"
@@ -242,61 +259,64 @@ fun AccountScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (currentLang == "en") "🌐 Language: English (Switch to اردو)" else "🌐 زبان: اردو (Switch to English)",
+                            text = if (currentLang == "en") stringResource(id = R.string.lang_english_btn) else stringResource(id = R.string.lang_urdu_btn),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // ── Sign Out Button ─────────────────────────────────────────────
                 OutlinedButton(
                     onClick = {
-                        authViewModel.signOut()
+                        authViewModel.signOut(context)
                         onSignOut()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
+                        .height(44.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Log Out of Account", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
+                        Text(text = stringResource(id = R.string.log_out_account), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
         }
     }
 
+
     // ── Secondary Vendor Registration Dialog ────────────────────────────────
     if (showVendorRegDialog) {
         AlertDialog(
             onDismissRequest = { showVendorRegDialog = false },
-            title = { Text(text = "Register as a Vendor") },
+            title = { Text(text = stringResource(id = R.string.register_vendor_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(text = "Enter your Saddar shop details to start receiving buyer requests.", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = stringResource(id = R.string.register_vendor_subtitle), style = MaterialTheme.typography.bodyMedium)
                     OutlinedTextField(
                         value = shopNameInput,
                         onValueChange = { shopNameInput = it },
-                        label = { Text("Shop Name") },
+                        label = { Text(stringResource(id = R.string.shop_name)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = marketZoneInput,
                         onValueChange = { marketZoneInput = it },
-                        label = { Text("Market Zone") },
+                        label = { Text(stringResource(id = R.string.market_zone)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -311,19 +331,21 @@ fun AccountScreen(
                             categories = listOf("mobile parts"),
                             connectsBalance = 50
                         )
-                        authViewModel.registerSecondaryRole("VENDOR", vp)
+                        authViewModel.registerSecondaryRole("VENDOR", vp, context)
                         showVendorRegDialog = false
                         onRoleSwitched()
                     }
                 ) {
-                    Text(text = "Save & Switch to Vendor")
+
+                    Text(text = stringResource(id = R.string.save_and_switch))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showVendorRegDialog = false }) {
-                    Text(text = "Cancel")
+                    Text(text = stringResource(id = R.string.cancel))
                 }
             }
         )
     }
+
 }

@@ -1,17 +1,30 @@
 package com.bazaarlink.app
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import com.bazaarlink.app.ui.navigation.NavGraph
 import com.bazaarlink.app.ui.theme.BazaarLinkTheme
+import com.bazaarlink.app.util.LocaleHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        val localizedContext = LocaleHelper.applyLocale(newBase)
+        super.attachBaseContext(localizedContext)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
 
         // Verify Firebase is connected
         val auth = FirebaseAuth.getInstance()
@@ -46,9 +59,16 @@ class MainActivity : ComponentActivity() {
             }
 
         setContent {
-            BazaarLinkTheme {
-                NavGraph()
+            val context = LocalContext.current
+            val currentLang = remember { LocaleHelper.getLanguage(context) }
+            val layoutDirection = if (currentLang == "ur") LayoutDirection.Rtl else LayoutDirection.Ltr
+
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+                BazaarLinkTheme {
+                    NavGraph()
+                }
             }
         }
     }
 }
+

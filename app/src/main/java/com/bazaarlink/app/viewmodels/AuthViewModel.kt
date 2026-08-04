@@ -1,5 +1,6 @@
 package com.bazaarlink.app.viewmodels
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,9 @@ import com.bazaarlink.app.di.ServiceLocator
 import com.bazaarlink.app.models.User
 import com.bazaarlink.app.models.VendorProfile
 import com.bazaarlink.app.repository.BazaarLinkRepository
+import com.bazaarlink.app.util.UserSessionManager
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +18,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
+
 
 sealed class AuthUiState {
     object Idle : AuthUiState()
@@ -39,9 +45,18 @@ class AuthViewModel(
         checkExistingSession()
     }
 
-    /** Called on app startup. If Firebase already has a logged-in user with a Firestore
-     *  profile, skip auth entirely and navigate straight to their active role screen. */
-    fun checkExistingSession() {
+    /** Called on app startup. If a user session is active, auto-login straight to their screen. */
+    fun checkExistingSession(context: Context? = null) {
+        context?.let { ctx ->
+            UserSessionManager.getActiveUserSession(ctx)?.let { user ->
+                Log.d("BazaarLink", "checkExistingSession: restored active session from UserSessionManager for ${user.displayName}")
+                repository.saveUserProfileLocally(user)
+                _currentUser.value = user
+                _uiState.value = AuthUiState.Success(user)
+                return
+            }
+        }
+
         val firebaseUser = auth.currentUser ?: return   // No session — stay on auth screen
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {
@@ -53,6 +68,7 @@ class AuthViewModel(
 
                 if (profile != null) {
                     Log.d("BazaarLink", "checkExistingSession: restored session for ${profile.displayName} (${profile.role})")
+                    context?.let { UserSessionManager.saveUserSession(it, profile) }
                     _currentUser.value = profile
                     _uiState.value = AuthUiState.Success(profile)
                 } else {
@@ -70,93 +86,105 @@ class AuthViewModel(
         }
     }
 
-    /** Called after Google sign-in returns an account. Checks Firestore for existing user profile by UID and Email. */
-    fun onGoogleAccountSelected(uid: String, email: String, displayName: String) {
-        _uiState.value = AuthUiState.Loading
-        viewModelScope.launch {
-            try {
-                var profile = repository.getUserProfile(uid).getOrNull()
-                if (profile == null && email.isNotBlank()) {
-                    profile = repository.getUserProfileByEmail(email).getOrNull()
-                }
-
-                if (profile != null) {
-                    Log.d("BazaarLink", "onGoogleAccountSelected: existing user ${profile.displayName} (${profile.role})")
-                    _currentUser.value = profile
-                    _uiState.value = AuthUiState.Success(profile)
-                } else {
-                    Log.d("BazaarLink", "onGoogleAccountSelected: new user, needs onboarding ($email)")
-                    _uiState.value = AuthUiState.NeedsOnboarding(
-                        uid = uid,
-                        email = email,
-                        googleDisplayName = displayName
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e("BazaarLink", "onGoogleAccountSelected failed: ${e.message}", e)
-                _uiState.value = AuthUiState.NeedsOnboarding(
-                    uid = uid,
-                    email = email,
-                    googleDisplayName = displayName
-                )
-            }
-        }
+    /** Directly restore a saved user session (e.g. from fallback) */
+    fun restoreSavedUser(user: User) {
+        repository.saveUserProfileLocally(user)
+        _currentUser.value = user
+        _uiState.value = AuthUiState.Success(user)
     }
 
-    /** Called after Google sign-in returns an AuthCredential. */
-    fun signInWithGoogleCredential(credential: AuthCredential) {
+    /** Sign in using Phone Number and Password */
+    fun signInWithPhoneAndPassword(context: Context, phoneNumber: String, password: String) {
         _uiState.value = AuthUiState.Loading
+        val cleanPhone = phoneNumber.trim()
         viewModelScope.launch {
             try {
-                val authResult = auth.signInWithCredential(credential).await()
-                val firebaseUser = authResult.user
-                if (firebaseUser == null) {
-                    _uiState.value = AuthUiState.Error("Google Sign-In returned no user")
+                // 1. Check local user registry first
+                var profile = UserSessionManager.findUserByPhone(context, cleanPhone)
+
+                // 2. Query cloud repository if not found locally
+                if (profile == null) {
+                    profile = repository.getUserProfileByPhone(cleanPhone).getOrNull()
+                }
+
+                if (profile == null) {
+                    _uiState.value = AuthUiState.Error("No account found for this phone number")
                     return@launch
                 }
-                onGoogleAccountSelected(
-                    uid = firebaseUser.uid,
-                    email = firebaseUser.email ?: "",
-                    displayName = firebaseUser.displayName ?: ""
-                )
+
+                // Verify password (if password was set during registration)
+                if (profile.password.isNotBlank() && profile.password != password) {
+                    _uiState.value = AuthUiState.Error("Invalid phone number or password")
+                    return@launch
+                }
+
+                // Successful login!
+                UserSessionManager.saveUserSession(context, profile)
+                repository.saveUserProfileLocally(profile)
+                _currentUser.value = profile
+                _uiState.value = AuthUiState.Success(profile)
             } catch (e: Exception) {
-                Log.e("BazaarLink", "signInWithGoogle failed: ${e.message}", e)
-                _uiState.value = AuthUiState.Error(e.message ?: "Google Sign-In failed")
+                Log.e("BazaarLink", "signInWithPhoneAndPassword failed: ${e.message}", e)
+                _uiState.value = AuthUiState.Error(e.message ?: "Sign-in failed")
             }
         }
     }
 
-    /** Called after the user fills in the onboarding form for the first time. */
-    fun completeOnboarding(
-        uid: String,
-        email: String,
+    /** Register a new user account with Phone Number & Password */
+    fun registerUser(
+        context: Context,
         role: String,
         displayName: String,
         phoneNumber: String,
+        password: String,
         cnic: String,
         vendorProfile: VendorProfile? = null
     ) {
+        _uiState.value = AuthUiState.Loading
+        val cleanPhone = phoneNumber.trim()
+        val uid = "user_${UUID.randomUUID().toString().take(8)}"
         val user = User(
             userId = uid,
-            email = email,
+            email = "",
+            password = password,
             role = role,
-            registeredRoles = listOf(role),
+            registeredRoles = if (role == "VENDOR") listOf("VENDOR", "BUYER") else listOf("BUYER"),
             displayName = displayName,
-            phoneNumber = phoneNumber,
+            phoneNumber = cleanPhone,
             cnic = cnic,
             vendorProfile = if (role == "VENDOR") (vendorProfile ?: VendorProfile(
                 categories = listOf("mobile parts")
             )) else null
         )
+
+        UserSessionManager.saveUserSession(context, user)
         repository.saveUserProfileLocally(user)
         _currentUser.value = user
         _uiState.value = AuthUiState.Success(user)
-        Log.d("BazaarLink", "completeOnboarding: profile saved for $displayName ($email, $role)")
+        Log.d("BazaarLink", "registerUser: profile saved for $displayName ($cleanPhone, $role)")
         viewModelScope.launch { repository.syncUserProfileToCloud(user) }
     }
 
+    /** Backwards compatibility alias for completeOnboarding */
+    fun completeOnboarding(
+        context: Context? = null,
+        uid: String = "",
+        email: String = "",
+        role: String,
+        displayName: String,
+        phoneNumber: String,
+        cnic: String,
+        vendorProfile: VendorProfile? = null,
+        password: String = ""
+    ) {
+        if (context != null) {
+            registerUser(context, role, displayName, phoneNumber, password, cnic, vendorProfile)
+        }
+    }
+
+
     /** Toggle active role if user is already registered for both BUYER and VENDOR roles. */
-    fun switchRole(newRole: String) {
+    fun switchRole(newRole: String, context: Context? = null) {
         val current = _currentUser.value ?: return
         val updatedRoles = if (current.registeredRoles.contains(newRole)) {
             current.registeredRoles
@@ -170,6 +198,7 @@ class AuthViewModel(
                 VendorProfile(shopName = "${current.displayName}'s Shop", categories = listOf("mobile parts"))
             } else current.vendorProfile
         )
+        context?.let { UserSessionManager.saveUserSession(it, updatedUser) }
         repository.saveUserProfileLocally(updatedUser)
         _currentUser.value = updatedUser
         _uiState.value = AuthUiState.Success(updatedUser)
@@ -180,7 +209,8 @@ class AuthViewModel(
     /** Register secondary role (e.g. Buyer becoming a Vendor with shop details). */
     fun registerSecondaryRole(
         newRole: String,
-        vendorProfile: VendorProfile? = null
+        vendorProfile: VendorProfile? = null,
+        context: Context? = null
     ) {
         val current = _currentUser.value ?: return
         val updatedRoles = (current.registeredRoles + newRole).distinct()
@@ -192,6 +222,7 @@ class AuthViewModel(
                 categories = listOf("mobile parts")
             )) else current.vendorProfile
         )
+        context?.let { UserSessionManager.saveUserSession(it, updatedUser) }
         repository.saveUserProfileLocally(updatedUser)
         _currentUser.value = updatedUser
         _uiState.value = AuthUiState.Success(updatedUser)
@@ -199,11 +230,21 @@ class AuthViewModel(
         viewModelScope.launch { repository.syncUserProfileToCloud(updatedUser) }
     }
 
-    fun signOut() {
-        auth.signOut()
+    fun signOut(context: Context? = null) {
+        try {
+            auth.signOut()
+            context?.let { ctx ->
+                UserSessionManager.clearActiveSession(ctx)
+                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build()
+                GoogleSignIn.getClient(ctx, gso).signOut()
+            }
+        } catch (e: Exception) {
+            Log.w("BazaarLink", "signOut error: ${e.message}")
+        }
         _currentUser.value = null
         _uiState.value = AuthUiState.Idle
     }
+
 
     // Backwards compat
     fun createOrUpdateUserProfile(
@@ -213,6 +254,6 @@ class AuthViewModel(
         phoneNumber: String,
         vendorProfile: VendorProfile? = null
     ) {
-        completeOnboarding(userId, "", role, displayName, phoneNumber, "", vendorProfile)
+        completeOnboarding(null, userId, "", role, displayName, phoneNumber, "", vendorProfile)
     }
 }

@@ -7,9 +7,11 @@
     <string name="auth_title">BazaarLink</string>
     <string name="auth_subtitle">Saddar\'s Hyperlocal Reverse-Marketplace</string>
     <string name="welcome_headline">Connect directly with Saddar merchants in real-time</string>
-    <string name="login">Login</string>
-    <string name="register">Register / Continue</string>
+    <string name="login">Sign In</string>
+    <string name="register">Register Account</string>
     <string name="phone_number">Phone Number</string>
+    <string name="password_label">Password</string>
+    <string name="password_hint">Enter your password</string>
     <string name="display_name">Full Name</string>
     <string name="role_buyer">Buyer</string>
     <string name="role_vendor">Vendor (Saddar Merchant)</string>
@@ -20,11 +22,15 @@
     <string name="category_accessories">Accessories</string>
     <string name="category_repair">Repair Services</string>
     <string name="switch_role">Switch Role</string>
-    <string name="sign_in_with_google">Sign in with Google</string>
-    <string name="default_web_client_id">dummy_client_id</string>
-    <string name="onboarding_title">Complete Your Profile</string>
-    <string name="complete_profile">Save &amp; Continue</string>
-    <string name="cnic">CNIC</string>
+    <string name="onboarding_title">Create Your Account</string>
+    <string name="sign_in_title">Sign In to Your Account</string>
+    <string name="complete_profile">Save &amp; Create Account</string>
+    <string name="cnic">CNIC Number</string>
+    <string name="already_have_account">Already have an account? Sign in</string>
+    <string name="dont_have_account">Don\'t have an account? Register</string>
+    <string name="invalid_credentials">Invalid phone number or password</string>
+    <string name="user_not_found">No account found for this phone number</string>
+
 
     <!-- Buyer Flow -->
     <string name="buyer_home_title">What are you looking for today?</string>
@@ -59,7 +65,10 @@
     <string name="connects_balance">⚡ %1$d Connects</string>
     <string name="submitting_quote">Submitting quote...</string>
     <string name="quote_sent_success">Quote successfully sent to buyer!</string>
+    <string name="quote_sent_success_title">Bid / Quote Sent!</string>
+    <string name="quote_sent_success_subtitle">Your quote has been transmitted to the buyer. You will be notified when they accept!</string>
     <string name="request_detail_title">Buyer Request Detail</string>
+
     <string name="buyer_request_label">BUYER IS LOOKING FOR</string>
     <string name="your_quote_label">Your Quote</string>
     <string name="add_photos_optional">Add Photos (optional)</string>
@@ -88,6 +97,8 @@
     <string name="tags_browse">+ Browse</string>
     <string name="tags_hide_pool">Hide</string>
     <string name="tags_all_selected">All tags selected!</string>
+    <string name="search_tags_placeholder">Search or type a tag...</string>
+
     <string name="remove_tag">Remove tag</string>
     <string name="reference_photos_label">Reference Photos</string>
     <string name="add_reference_photo">Add Photo</string>
@@ -108,8 +119,30 @@
     <string name="chat_created_hint">A private chat has been opened. Tap below to start messaging.</string>
     <string name="chat_go_to_chat">Go to Chat</string>
 
+    <!-- Account Screen -->
+    <string name="account_title">My Account</string>
+    <string name="active_role_vendor">Active Role: Vendor (Merchant)</string>
+    <string name="active_role_buyer">Active Role: Buyer</string>
+    <string name="switch_to_vendor">Switch to Vendor Mode</string>
+    <string name="become_vendor">Become a Vendor (Register Shop)</string>
+    <string name="switch_to_buyer">Switch to Buyer Mode</string>
+    <string name="lang_english_btn">Switch to اردو (Urdu)</string>
+    <string name="lang_urdu_btn">Switch to English (انگریزی)</string>
+    <string name="log_out_account">Log Out of Account</string>
+    <string name="register_vendor_title">Register as a Vendor</string>
+    <string name="register_vendor_subtitle">Enter your Saddar shop details to start receiving buyer requests.</string>
+    <string name="save_and_switch">Save &amp; Switch to Vendor</string>
+
+    <!-- Markets -->
+    <string name="market_star_city">Star City Mall, Saddar</string>
+    <string name="market_saddar">Saddar, Karachi</string>
+
     <!-- Bottom tabs -->
     <string name="tab_my_request">My Request</string>
     <string name="tab_chats">Chats</string>
     <string name="tab_requests">Requests</string>
+    <string name="tab_account">Account</string>
 </resources>
+
+
+

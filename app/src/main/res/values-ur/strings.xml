@@ -7,9 +7,11 @@
     <string name="auth_title">بازار لنک</string>
     <string name="auth_subtitle">صدر کی سب سے بڑی موبائل مارکیٹ</string>
     <string name="welcome_headline">صدر مارکیٹ کے دکانداروں سے براہ راست رابطہ کریں</string>
-    <string name="login">لاگ ان</string>
-    <string name="register">رجسٹر کریں</string>
+    <string name="login">سائن ان کریں</string>
+    <string name="register">اکاؤنٹ بنائیں</string>
     <string name="phone_number">فون نمبر</string>
+    <string name="password_label">پاس ورڈ</string>
+    <string name="password_hint">اپنا پاس ورڈ درج کریں</string>
     <string name="display_name">مکمل نام</string>
     <string name="role_buyer">خریدار (Buyer)</string>
     <string name="role_vendor">دکاندار (Saddar Merchant)</string>
@@ -20,10 +22,15 @@
     <string name="category_accessories">موبائل ایکسیسریز</string>
     <string name="category_repair">ریپیئرنگ سروسز</string>
     <string name="switch_role">رول تبدیل کریں</string>
-    <string name="sign_in_with_google">گوگل کے ساتھ سائن ان کریں</string>
-    <string name="onboarding_title">اپنی پروفائل مکمل کریں</string>
-    <string name="complete_profile">محفوظ کریں اور آگے بڑھیں</string>
+    <string name="onboarding_title">نیا اکاؤنٹ بنائیں</string>
+    <string name="sign_in_title">اپنے اکاؤنٹ میں سائن ان کریں</string>
+    <string name="complete_profile">محفوظ کریں اور اکاؤنٹ بنائیں</string>
     <string name="cnic">شناختی کارڈ نمبر (CNIC)</string>
+    <string name="already_have_account">پہلے سے اکاؤنٹ موجود ہے؟ سائن ان کریں</string>
+    <string name="dont_have_account">نیا اکاؤنٹ بنائیں؟ رجسٹریشن کریں</string>
+    <string name="invalid_credentials">فون نمبر یا پاس ورڈ غلط ہے</string>
+    <string name="user_not_found">اس فون نمبر پر کوئی اکاؤنٹ موجود نہیں ہے</string>
+
 
     <!-- Buyer Flow -->
     <string name="buyer_home_title">آج آپ کو کیا چاہئے؟</string>
@@ -58,7 +65,10 @@
     <string name="connects_balance">⚡ %1$d کنیکٹس</string>
     <string name="submitting_quote">ریٹ بھیجا جا رہا ہے...</string>
     <string name="quote_sent_success">ریٹ خریدار کو بھیج دیا گیا!</string>
+    <string name="quote_sent_success_title">قیمت / پیشکش بھیج دی گئی!</string>
+    <string name="quote_sent_success_subtitle">آپ کی پیشکش خریدار کو بھیج دی گئی ہے۔ خریدار کی قبولیت پر آپ کو مطلع کیا جائے گا۔</string>
     <string name="request_detail_title">خریدار کی درخواست کی تفصیلات</string>
+
     <string name="buyer_request_label">خریدار کی ضرورت</string>
     <string name="your_quote_label">آپ کی پیشکش</string>
     <string name="add_photos_optional">تصاویر شامل کریں (آپشنل)</string>
@@ -68,7 +78,9 @@
     <string name="submit">جمع کریں</string>
     <string name="done">مکمل</string>
     <string name="reset">نئی درخواست</string>
+    <string name="search_tags_placeholder">ٹیگز تلاش کریں یا درج کریں…</string>
     <string name="back">واپس</string>
+
 
     <!-- Chat -->
     <string name="chats_title">چیٹس</string>
@@ -83,8 +95,38 @@
     <string name="chat_created_hint">پرائیویٹ چیٹ کھل گئی ہے۔ نیچے پیغام لکھیں۔</string>
     <string name="chat_go_to_chat">چیٹ پر جائیں</string>
 
+    <!-- Account Screen -->
+    <string name="account_title">میرا اکاؤنٹ</string>
+    <string name="active_role_vendor">فعال رول: دکاندار (Vendor)</string>
+    <string name="active_role_buyer">فعال رول: خریدار (Buyer)</string>
+    <string name="switch_to_vendor">دکاندار کے رول پر منتقل ہوں</string>
+    <string name="become_vendor">دکاندار بنیں (دکان رجسٹر کریں)</string>
+    <string name="switch_to_buyer">خریدار کے رول پر منتقل ہوں</string>
+    <string name="lang_english_btn">اردو میں تبدیل کریں</string>
+    <string name="lang_urdu_btn">Switch to English</string>
+    <string name="log_out_account">اکاؤنٹ سے لاگ آؤٹ کریں</string>
+    <string name="register_vendor_title">دکاندار کے طور پر رجسٹر ہوں</string>
+    <string name="register_vendor_subtitle">خریداروں کی درخواستیں موصول کرنے کے لیے اپنی دکان کی تفصیلات درج کریں۔</string>
+    <string name="save_and_switch">محفوظ کریں اور دکاندار بنیں</string>
+
+    <!-- Missing Buyer & Market translations -->
+    <string name="reference_photos_label">ریفرنس تصاویر</string>
+    <string name="add_reference_photo">تصویر شامل کریں</string>
+    <string name="remove_photo">تصویر ہٹائیں</string>
+    <string name="tags_section_label">ٹیگز</string>
+    <string name="tags_browse">+ دیکھیں</string>
+    <string name="tags_hide_pool">چھپائیں</string>
+    <string name="tags_all_selected">تمام ٹیگز منتخب ہو گئے!</string>
+    <string name="go_broadcast">بھیجیں — صدر میں براڈکاسٹ کریں</string>
+    <string name="market_star_city">اسٹار سٹی مال، صدر</string>
+    <string name="market_saddar">صدر، کراچی</string>
+
     <!-- Bottom tabs -->
     <string name="tab_my_request">میری درخواست</string>
     <string name="tab_chats">چیٹس</string>
     <string name="tab_requests">درخواستیں</string>
+    <string name="tab_account">اکاؤنٹ</string>
 </resources>
+
+
+

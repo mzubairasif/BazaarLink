@@ -13,6 +13,8 @@ interface BazaarLinkRepository {
     // User profile operations
     suspend fun getUserProfile(userId: String): Result<User?>
     suspend fun getUserProfileByEmail(email: String): Result<User?>
+    suspend fun getUserProfileByPhone(phoneNumber: String): Result<User?>
+
     suspend fun saveUserProfile(user: User): Result<Unit>
 
     // Local-first user profile (no network, instant)
@@ -21,7 +23,10 @@ interface BazaarLinkRepository {
 
     // Request operations
     fun getActiveRequests(category: String = "mobile phones accessories"): Flow<List<Request>>
+    fun getBuyerRequests(buyerId: String, days: Int = 5): Flow<List<Request>>
+    fun getRequest(requestId: String): Flow<Request?>
     suspend fun broadcastRequest(request: Request): Result<String>
+
 
     // Quote operations
     fun getQuotesForRequest(requestId: String): Flow<List<Quote>>
@@ -36,6 +41,12 @@ interface BazaarLinkRepository {
 
     /** Upload a local file to Firebase Storage and return its download URL. */
     suspend fun uploadImage(uri: Uri, storagePath: String): Result<String>
+
+    // ── Review operations ─────────────────────────────────────────────────────
+    suspend fun submitReview(review: com.bazaarlink.app.models.Review): Result<Unit>
+    fun getVendorReviews(vendorId: String): Flow<List<com.bazaarlink.app.models.Review>>
+    fun hasBuyerReviewedRequest(requestId: String, buyerId: String): Flow<Boolean>
+
 
     // ── Chat operations ──────────────────────────────────────────────────────
     /** Create a new chat document when a quote is accepted. Returns the chatId. */
@@ -54,14 +65,24 @@ interface BazaarLinkRepository {
     fun getUserChats(userId: String): Flow<List<Chat>>
 
     /** Send a text message to a chat. */
-    suspend fun sendTextMessage(chatId: String, senderId: String, text: String): Result<Unit>
+    suspend fun sendTextMessage(
+        chatId: String,
+        senderId: String,
+        text: String,
+        replyToMessageId: String = "",
+        replyToSenderName: String = "",
+        replyToTextPreview: String = ""
+    ): Result<Unit>
 
     /** Upload a voice recording to Firebase Storage and send the message. */
     suspend fun sendVoiceMessage(
         chatId: String,
         senderId: String,
         localFileUri: Uri,
-        durationSecs: Int
+        durationSecs: Int,
+        replyToMessageId: String = "",
+        replyToSenderName: String = "",
+        replyToTextPreview: String = ""
     ): Result<Unit>
 
     /** Upload an image to Firebase Storage and send the message. */
@@ -70,6 +91,9 @@ interface BazaarLinkRepository {
         senderId: String,
         imageUri: Uri
     ): Result<Unit>
+
+    /** Delete specified messages from a chat. */
+    suspend fun deleteMessages(chatId: String, messageIds: List<String>): Result<Unit>
 
     /** Stream all messages for a chat in real-time, ordered by timestamp. */
     fun getMessages(chatId: String): Flow<List<Message>>
@@ -82,5 +106,6 @@ interface BazaarLinkRepository {
         nickname: String
     ): Result<Unit>
 }
+
 
 

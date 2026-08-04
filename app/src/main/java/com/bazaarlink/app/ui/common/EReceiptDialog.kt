@@ -1,16 +1,23 @@
 package com.bazaarlink.app.ui.common
 
+import android.Manifest
 import android.content.ContentValues
+
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.view.View
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,10 +32,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,23 +41,19 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.bazaarlink.app.R
 import com.bazaarlink.app.models.Chat
 import java.io.OutputStream
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -61,9 +62,18 @@ fun EReceiptDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val view = LocalView.current
-
     val codeDisplay = chat.claimCode.ifBlank { (100..999).random().toString() }
+
+    val writePermLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            saveReceiptToGallery(context, chat, codeDisplay)
+        } else {
+            Toast.makeText(context, "Storage permission is required to save receipts to Photos gallery", Toast.LENGTH_LONG).show()
+        }
+    }
+
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -172,7 +182,7 @@ fun EReceiptDialog(
 
                         ReceiptRow(
                             label = "Date:",
-                            value = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(chat.createdAt)
+                            value = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(chat.createdAt ?: Date())
                         )
                     }
                 }
@@ -196,8 +206,18 @@ fun EReceiptDialog(
 
                     Button(
                         onClick = {
-                            saveReceiptBitmap(context, view, codeDisplay)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                saveReceiptToGallery(context, chat, codeDisplay)
+                            } else {
+                                val hasPerm = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                                if (hasPerm) {
+                                    saveReceiptToGallery(context, chat, codeDisplay)
+                                } else {
+                                    writePermLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                }
+                            }
                         },
+
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
@@ -224,30 +244,168 @@ private fun ReceiptRow(label: String, value: String) {
     }
 }
 
-private fun saveReceiptBitmap(context: Context, view: View, claimCode: String) {
-    try {
-        val bitmap = Bitmap.createBitmap(view.width.coerceAtLeast(600), view.height.coerceAtLeast(800), Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        view.draw(canvas)
+private fun generateEReceiptBitmap(context: Context, chat: Chat, claimCode: String): Bitmap {
+    val width = 1080
+    val height = 1560
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
 
+    // Color definitions
+    val primaryColor = android.graphics.Color.parseColor("#0F52BA")
+    val primaryLight = android.graphics.Color.parseColor("#EBF2FF")
+    val darkTextColor = android.graphics.Color.parseColor("#1C1B1F")
+    val grayTextColor = android.graphics.Color.parseColor("#49454F")
+    val dividerColor = android.graphics.Color.parseColor("#E0E0E0")
+    val whiteColor = android.graphics.Color.WHITE
+
+    // Background
+    canvas.drawColor(whiteColor)
+
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    // Outer Border
+    paint.color = primaryColor
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 16f
+    canvas.drawRect(30f, 30f, width - 30f, height - 30f, paint)
+
+    // Header Banner
+    paint.style = Paint.Style.FILL
+    paint.color = primaryColor
+    canvas.drawRect(30f, 30f, width - 30f, 220f, paint)
+
+    // Header Text
+    paint.color = whiteColor
+    paint.textSize = 50f
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    paint.textAlign = Paint.Align.CENTER
+    canvas.drawText("BAZAARLINK E-RECEIPT", width / 2f, 120f, paint)
+
+    paint.textSize = 26f
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+    canvas.drawText("Saddar Hyperlocal Reverse-Marketplace, Karachi", width / 2f, 175f, paint)
+
+    // ── 3-Digit Claim Code Banner ──────────────────────────────────
+    val bannerRect = RectF(80f, 260f, width - 80f, 480f)
+    paint.color = primaryLight
+    canvas.drawRoundRect(bannerRect, 30f, 30f, paint)
+
+    paint.color = primaryColor
+    paint.textSize = 30f
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    canvas.drawText("CLAIM VERIFICATION CODE", width / 2f, 320f, paint)
+
+    paint.textSize = 90f
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    canvas.drawText("#$claimCode", width / 2f, 415f, paint)
+
+    paint.textSize = 24f
+    paint.color = grayTextColor
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+    canvas.drawText("Present this claim code at shop counter in Saddar", width / 2f, 455f, paint)
+
+    // ── Deal Details Table Card ──────────────────────────────────────
+    val tableRect = RectF(80f, 520f, width - 80f, 1340f)
+    paint.color = android.graphics.Color.parseColor("#F7F9FC")
+    canvas.drawRoundRect(tableRect, 24f, 24f, paint)
+
+    paint.style = Paint.Style.STROKE
+    paint.color = dividerColor
+    paint.strokeWidth = 3f
+    canvas.drawRoundRect(tableRect, 24f, 24f, paint)
+
+    paint.style = Paint.Style.FILL
+
+    val startY = 590f
+    val rowHeight = 90f
+    var currentY = startY
+
+    val priceText = "PKR ${String.format(Locale.getDefault(), "%,.0f", chat.offeredPricePKR.takeIf { it > 0 } ?: 4500.0)}"
+    val dateText = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(chat.createdAt ?: Date())
+
+    val rows = listOf(
+        Pair("Item Requested", chat.itemQuery.ifBlank { "Mobile Part / Accessory" }),
+        Pair("Agreed Deal Price", priceText),
+        Pair("Buyer Name", chat.buyerDisplayName.ifBlank { "Buyer" }),
+        Pair("Buyer Phone", chat.buyerPhone.ifBlank { "N/A" }),
+        Pair("Merchant Shop", chat.vendorDisplayName.ifBlank { "Saddar Merchant" }),
+        Pair("Merchant Phone", chat.vendorPhone.ifBlank { "N/A" }),
+        Pair("Market Location", "Star City Mall, Saddar, Karachi"),
+        Pair("Date & Time", dateText)
+    )
+
+    rows.forEachIndexed { index, (label, valStr) ->
+        paint.color = grayTextColor
+        paint.textSize = 28f
+        paint.textAlign = Paint.Align.LEFT
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        canvas.drawText(label, 120f, currentY, paint)
+
+        paint.color = if (label == "Agreed Deal Price") primaryColor else darkTextColor
+        paint.textSize = 30f
+        paint.textAlign = Paint.Align.RIGHT
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        val truncatedValue = if (valStr.length > 32) valStr.take(30) + "..." else valStr
+        canvas.drawText(truncatedValue, width - 120f, currentY, paint)
+
+        if (index < rows.size - 1) {
+            val lineY = currentY + 30f
+            paint.color = dividerColor
+            paint.strokeWidth = 2f
+            canvas.drawLine(120f, lineY, width - 120f, lineY, paint)
+        }
+        currentY += rowHeight
+    }
+
+    // ── Verification Seal at Bottom ─────────────────────────────────
+    paint.color = primaryColor
+    paint.textSize = 28f
+    paint.textAlign = Paint.Align.CENTER
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    canvas.drawText("✔ VERIFIED SADDAR MARKETPLACE DEAL", width / 2f, 1410f, paint)
+
+    paint.color = grayTextColor
+    paint.textSize = 22f
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+    canvas.drawText("Generated by BazaarLink Android App • ibex iSprint Blueprint 2026", width / 2f, 1460f, paint)
+
+    return bitmap
+}
+
+private fun saveReceiptToGallery(context: Context, chat: Chat, claimCode: String) {
+    try {
+        val bitmap = generateEReceiptBitmap(context, chat, claimCode)
         val filename = "BazaarLink_Receipt_Claim_$claimCode.png"
-        val values = ContentValues().apply {
+
+        val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, filename)
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/BazaarLink")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }
 
-        val uri: Uri? = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-        uri?.let {
-            val out: OutputStream? = context.contentResolver.openOutputStream(it)
-            out?.use { stream -> bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream) }
-            Toast.makeText(context, "E-Receipt saved to Photos gallery!", Toast.LENGTH_LONG).show()
-        } ?: run {
-            Toast.makeText(context, "E-Receipt saved!", Toast.LENGTH_SHORT).show()
+        val resolver = context.contentResolver
+        val imageUri: Uri? = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+
+        if (imageUri != null) {
+            resolver.openOutputStream(imageUri)?.use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.clear()
+                contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                resolver.update(imageUri, contentValues, null, null)
+            }
+
+            Toast.makeText(context, "E-Receipt (#$claimCode) saved to Photos gallery!", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(context, "Failed to create receipt image in gallery", Toast.LENGTH_SHORT).show()
         }
     } catch (e: Exception) {
-        Toast.makeText(context, "Receipt captured successfully!", Toast.LENGTH_SHORT).show()
+        android.util.Log.e("BazaarLink", "saveReceiptToGallery error: ${e.message}", e)
+        Toast.makeText(context, "Error saving E-Receipt: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }

@@ -58,8 +58,9 @@ fun VendorShell(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     icon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
-                    label = { Text(text = "Account") }
+                    label = { Text(text = stringResource(id = R.string.tab_account)) }
                 )
+
             }
         }
     ) { innerPadding ->

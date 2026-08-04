@@ -22,6 +22,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Date
 import java.util.UUID
 
+import com.bazaarlink.app.models.Review
+
 class BazaarLinkRepositoryImpl(
     private val firestore: FirebaseFirestore,
     private val storage: FirebaseStorage = FirebaseStorage.getInstance()
@@ -30,6 +32,8 @@ class BazaarLinkRepositoryImpl(
     private val localUsers = mutableMapOf<String, User>()
     private val localRequests = MutableStateFlow<List<Request>>(emptyList())
     private val localQuotes = MutableStateFlow<List<Quote>>(emptyList())
+    private val localReviews = MutableStateFlow<List<Review>>(emptyList())
+
 
     override suspend fun getUserProfile(userId: String): Result<User?> {
         localUsers[userId]?.let { return Result.success(it) }
@@ -70,6 +74,32 @@ class BazaarLinkRepositoryImpl(
             Result.success(null)
         }
     }
+
+    override suspend fun getUserProfileByPhone(phoneNumber: String): Result<User?> {
+        if (phoneNumber.isBlank()) return Result.success(null)
+        val cleanPhone = phoneNumber.trim()
+        localUsers.values.firstOrNull { it.phoneNumber.trim() == cleanPhone }?.let {
+            return Result.success(it)
+        }
+        return try {
+            val snapshot = withTimeoutOrNull(4000L) {
+                firestore.collection("users")
+                    .whereEqualTo("phoneNumber", cleanPhone)
+                    .get()
+                    .await()
+            }
+            val userDoc = snapshot?.documents?.firstOrNull()
+            val user = userDoc?.toObject(User::class.java)
+            if (user != null) {
+                localUsers[user.userId] = user
+            }
+            Result.success(user)
+        } catch (e: Exception) {
+            Log.w("BazaarLink", "getUserProfileByPhone error: ${e.message}")
+            Result.success(null)
+        }
+    }
+
 
     override suspend fun saveUserProfile(user: User): Result<Unit> {
         localUsers[user.userId] = user
@@ -201,6 +231,61 @@ class BazaarLinkRepositoryImpl(
 
         return Result.success(reqId)
     }
+
+    override fun getBuyerRequests(buyerId: String, days: Int): Flow<List<Request>> = callbackFlow {
+        val cutoffMs = System.currentTimeMillis() - (days * 24 * 60 * 60 * 1000L)
+        val cutoffDate = Date(cutoffMs)
+        val subscription = try {
+            firestore.collection("requests")
+                .whereEqualTo("buyerId", buyerId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("BazaarLink", "getBuyerRequests error: ${error.message}", error)
+                        trySend(localRequests.value.filter { it.buyerId == buyerId && (it.createdAt.after(cutoffDate) || it.createdAt.time >= cutoffMs) })
+                        return@addSnapshotListener
+                    }
+                    val cloudReqs = snapshot?.toObjects(Request::class.java) ?: emptyList()
+                    val merged = (cloudReqs + localRequests.value.filter { it.buyerId == buyerId })
+                        .distinctBy { it.requestId }
+                        .filter { it.createdAt.after(cutoffDate) || it.createdAt.time >= cutoffMs }
+                        .sortedByDescending { it.createdAt }
+                    trySend(merged)
+                }
+        } catch (e: Exception) {
+            Log.e("BazaarLink", "getBuyerRequests listener error: ${e.message}", e)
+            null
+        }
+
+        if (subscription == null) {
+            trySend(localRequests.value.filter { it.buyerId == buyerId && (it.createdAt.after(cutoffDate) || it.createdAt.time >= cutoffMs) })
+        }
+        awaitClose { subscription?.remove() }
+    }
+
+    override fun getRequest(requestId: String): Flow<Request?> = callbackFlow {
+        val subscription = try {
+            firestore.collection("requests").document(requestId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("BazaarLink", "getRequest error: ${error.message}", error)
+                        trySend(localRequests.value.find { it.requestId == requestId })
+                        return@addSnapshotListener
+                    }
+                    val cloudReq = snapshot?.toObject(Request::class.java)
+                    val localReq = localRequests.value.find { it.requestId == requestId }
+                    trySend(cloudReq ?: localReq)
+                }
+        } catch (e: Exception) {
+            Log.e("BazaarLink", "getRequest listener error: ${e.message}", e)
+            null
+        }
+
+        if (subscription == null) {
+            trySend(localRequests.value.find { it.requestId == requestId })
+        }
+        awaitClose { subscription?.remove() }
+    }
+
 
     override fun getQuotesForRequest(requestId: String): Flow<List<Quote>> = callbackFlow {
         Log.d("BazaarLink", "getQuotesForRequest: Starting listener for requestId=$requestId")
@@ -487,12 +572,13 @@ class BazaarLinkRepositoryImpl(
                 "vendorPhone" to vendorPhone,
                 "itemQuery" to itemQuery,
                 "lastMessage" to "",
-                "lastMessageAt" to Date(),
-                "createdAt" to Date()
+                "lastMessageAt" to FieldValue.serverTimestamp(),
+                "createdAt" to FieldValue.serverTimestamp()
             )
             withTimeoutOrNull(8000L) {
                 firestore.collection("chats").document(chatId).set(data).await()
             }
+
             Log.d("BazaarLink", "createChat: created chat $chatId with claimCode #$randomClaimCode")
             Result.success(chatId)
         } catch (e: Exception) {
@@ -533,13 +619,23 @@ class BazaarLinkRepositoryImpl(
         awaitClose { subBuyer.remove(); subVendor.remove() }
     }
 
-    override suspend fun sendTextMessage(chatId: String, senderId: String, text: String): Result<Unit> {
+    override suspend fun sendTextMessage(
+        chatId: String,
+        senderId: String,
+        text: String,
+        replyToMessageId: String,
+        replyToSenderName: String,
+        replyToTextPreview: String
+    ): Result<Unit> {
         return sendMessage(chatId, senderId, mapOf(
             "type" to MessageType.TEXT,
             "text" to text,
             "voiceUrl" to "",
             "imageUrl" to "",
-            "voiceDurationSecs" to 0
+            "voiceDurationSecs" to 0,
+            "replyToMessageId" to replyToMessageId,
+            "replyToSenderName" to replyToSenderName,
+            "replyToTextPreview" to replyToTextPreview
         ), preview = text)
     }
 
@@ -547,7 +643,10 @@ class BazaarLinkRepositoryImpl(
         chatId: String,
         senderId: String,
         localFileUri: Uri,
-        durationSecs: Int
+        durationSecs: Int,
+        replyToMessageId: String,
+        replyToSenderName: String,
+        replyToTextPreview: String
     ): Result<Unit> {
         return try {
             val msgId = UUID.randomUUID().toString()
@@ -561,13 +660,17 @@ class BazaarLinkRepositoryImpl(
                 "text" to "",
                 "voiceUrl" to uploadTask,
                 "imageUrl" to "",
-                "voiceDurationSecs" to durationSecs
+                "voiceDurationSecs" to durationSecs,
+                "replyToMessageId" to replyToMessageId,
+                "replyToSenderName" to replyToSenderName,
+                "replyToTextPreview" to replyToTextPreview
             ), preview = "🎙️ Voice message", forcedId = msgId)
         } catch (e: Exception) {
             Log.e("BazaarLink", "sendVoiceMessage failed: ${e.message}", e)
             Result.failure(e)
         }
     }
+
 
     override suspend fun sendImageMessage(
         chatId: String,
@@ -604,21 +707,20 @@ class BazaarLinkRepositoryImpl(
     ): Result<Unit> {
         return try {
             val msgId = forcedId ?: UUID.randomUUID().toString()
-            val now = Date()
             val timeMs = System.currentTimeMillis()
             val msgData = hashMapOf(
                 "messageId" to msgId,
                 "chatId" to chatId,
                 "senderId" to senderId,
                 "timestamp" to timeMs,
-                "createdAt" to now
+                "createdAt" to FieldValue.serverTimestamp()
             ) + extraFields
 
             val batch = firestore.batch()
             batch.set(firestore.collection("messages").document(msgId), msgData)
             batch.update(
                 firestore.collection("chats").document(chatId),
-                mapOf("lastMessage" to preview, "lastMessageAt" to now)
+                mapOf("lastMessage" to preview, "lastMessageAt" to FieldValue.serverTimestamp())
             )
             withTimeoutOrNull(8000L) { batch.commit().await() }
             Log.d("BazaarLink", "sendMessage: sent $msgId to chat $chatId (ts=$timeMs)")
@@ -629,8 +731,24 @@ class BazaarLinkRepositoryImpl(
         }
     }
 
+    override suspend fun deleteMessages(chatId: String, messageIds: List<String>): Result<Unit> {
+        return try {
+            val batch = firestore.batch()
+            messageIds.forEach { id ->
+                batch.delete(firestore.collection("messages").document(id))
+            }
+            withTimeoutOrNull(8000L) { batch.commit().await() }
+            Log.d("BazaarLink", "deleteMessages: deleted ${messageIds.size} messages from chat $chatId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("BazaarLink", "deleteMessages failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     override fun getMessages(chatId: String): Flow<List<Message>> = callbackFlow {
-        // Messages are sorted strictly by millisecond timestamp in ascending order (oldest top, newest bottom)
+
+        // Messages are sorted strictly by Firebase Cloud Server UTC timestamp in ascending order
         val sub = firestore.collection("messages")
             .whereEqualTo("chatId", chatId)
             .addSnapshotListener { snap, err ->
@@ -640,11 +758,12 @@ class BazaarLinkRepositoryImpl(
                     return@addSnapshotListener
                 }
                 val msgs = (snap?.toObjects(Message::class.java) ?: emptyList())
-                    .sortedBy { if (it.timestamp > 0L) it.timestamp else it.createdAt.time }
+                    .sortedBy { it.createdAt?.time ?: it.timestamp }
                 trySend(msgs)
             }
         awaitClose { sub.remove() }
     }
+
 
     override suspend fun updateNickname(
         chatId: String,
@@ -680,5 +799,111 @@ class BazaarLinkRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun submitReview(review: Review): Result<Unit> {
+        if (review.buyerId.isNotBlank() && review.buyerId == review.vendorId) {
+            Log.w("BazaarLink", "submitReview BLOCKED: Buyer cannot rate their own vendor account.")
+            return Result.failure(IllegalArgumentException("You cannot rate your own vendor account."))
+        }
+
+        val revId = review.reviewId.ifEmpty { UUID.randomUUID().toString() }
+        val finalReview = review.copy(reviewId = revId)
+        localReviews.value = (localReviews.value + finalReview).distinctBy { it.reviewId }
+
+        try {
+            val data = hashMapOf(
+                "reviewId" to revId,
+                "vendorId" to finalReview.vendorId,
+                "buyerId" to finalReview.buyerId,
+                "buyerDisplayName" to finalReview.buyerDisplayName,
+                "requestId" to finalReview.requestId,
+                "rating" to finalReview.rating,
+                "comment" to finalReview.comment,
+                "createdAt" to finalReview.createdAt
+            )
+            withTimeoutOrNull(8000L) {
+                firestore.collection("reviews").document(revId).set(data).await()
+
+                // Recalculate vendor rating & increment totalRatings
+                if (finalReview.vendorId.isNotBlank()) {
+                    val vendorDocRef = firestore.collection("users").document(finalReview.vendorId)
+                    val snap = vendorDocRef.get().await()
+                    val user = snap.toObject(User::class.java)
+                    if (user?.vendorProfile != null) {
+                        val currentRating = user.vendorProfile.rating
+                        val currentCount = user.vendorProfile.totalRatings
+                        val newCount = currentCount + 1
+                        val newAvg = ((currentRating * currentCount) + finalReview.rating) / newCount
+                        val roundedAvg = Math.round(newAvg * 10.0) / 10.0
+                        val updatedProfile = user.vendorProfile.copy(
+                            rating = roundedAvg,
+                            totalRatings = newCount
+                        )
+                        vendorDocRef.update("vendorProfile", updatedProfile).await()
+                    }
+                }
+                true
+            }
+        } catch (e: Exception) {
+            Log.e("BazaarLink", "submitReview sync error: ${e.message}", e)
+        }
+        return Result.success(Unit)
+    }
+
+    override fun getVendorReviews(vendorId: String): Flow<List<Review>> = callbackFlow {
+        val subscription = try {
+            firestore.collection("reviews")
+                .whereEqualTo("vendorId", vendorId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("BazaarLink", "getVendorReviews error: ${error.message}", error)
+                        trySend(localReviews.value.filter { it.vendorId == vendorId })
+                        return@addSnapshotListener
+                    }
+                    val cloudRevs = snapshot?.toObjects(Review::class.java) ?: emptyList()
+                    val merged = (cloudRevs + localReviews.value.filter { it.vendorId == vendorId })
+                        .distinctBy { it.reviewId }
+                        .sortedByDescending { it.createdAt }
+                    trySend(merged)
+                }
+        } catch (e: Exception) {
+            Log.e("BazaarLink", "getVendorReviews listener error: ${e.message}", e)
+            null
+        }
+
+        if (subscription == null) {
+            trySend(localReviews.value.filter { it.vendorId == vendorId })
+        }
+        awaitClose { subscription?.remove() }
+    }
+
+    override fun hasBuyerReviewedRequest(requestId: String, buyerId: String): Flow<Boolean> = callbackFlow {
+        val subscription = try {
+            firestore.collection("reviews")
+                .whereEqualTo("requestId", requestId)
+                .whereEqualTo("buyerId", buyerId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("BazaarLink", "hasBuyerReviewedRequest error: ${error.message}", error)
+                        val hasLocal = localReviews.value.any { it.requestId == requestId && it.buyerId == buyerId }
+                        trySend(hasLocal)
+                        return@addSnapshotListener
+                    }
+                    val hasDoc = (snapshot != null && !snapshot.isEmpty) ||
+                            localReviews.value.any { it.requestId == requestId && it.buyerId == buyerId }
+                    trySend(hasDoc)
+                }
+        } catch (e: Exception) {
+            Log.e("BazaarLink", "hasBuyerReviewedRequest error: ${e.message}", e)
+            null
+        }
+
+        if (subscription == null) {
+            val hasLocal = localReviews.value.any { it.requestId == requestId && it.buyerId == buyerId }
+            trySend(hasLocal)
+        }
+        awaitClose { subscription?.remove() }
+    }
 }
+
 

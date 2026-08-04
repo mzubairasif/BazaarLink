@@ -20,13 +20,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,6 +41,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextAlign
+
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -69,6 +74,7 @@ fun VendorFeedScreen(
     val incomingRequests by viewModel.incomingRequests.collectAsState()
 
     var selectedRequest by remember { mutableStateOf<Request?>(null) }
+    var showQuoteSentDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.listenToIncomingRequests(category = "mobile parts")
@@ -179,12 +185,79 @@ fun VendorFeedScreen(
                             localImageUris = images
                         )
                         selectedRequest = null
+                        showQuoteSentDialog = true
                     }
                 )
             }
         }
+
+        // ── Confirmation Pop-up: Bid / Quote Sent ──────────────────────────
+        if (showQuoteSentDialog) {
+            AlertDialog(
+                onDismissRequest = { showQuoteSentDialog = false },
+                shape = RoundedCornerShape(24.dp),
+                containerColor = MaterialTheme.colorScheme.surface,
+                icon = {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                },
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.quote_sent_success_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(id = R.string.quote_sent_success_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Button(
+                            onClick = { showQuoteSentDialog = false },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.done),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            )
+        }
     }
 }
+
 
 @Composable
 fun VendorRequestItemCard(
@@ -209,7 +282,7 @@ fun VendorRequestItemCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = request.category.uppercase(),
+                        text = getLocalizedCategory(request.category),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -218,12 +291,13 @@ fun VendorRequestItemCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(16.dp))
                     Text(
-                        text = request.location.marketName.ifBlank { "Saddar, Karachi" },
+                        text = getLocalizedMarketName(request.location.marketName),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+
 
             Spacer(modifier = Modifier.height(12.dp))
             Text(text = request.rawQuery, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -285,3 +359,24 @@ fun VendorRequestItemCard(
         }
     }
 }
+
+@Composable
+fun getLocalizedCategory(category: String): String {
+    return when (category.lowercase()) {
+        "mobile parts", "mobile_parts" -> stringResource(id = R.string.category_mobile_parts)
+        "accessories" -> stringResource(id = R.string.category_accessories)
+        "repair", "repair services" -> stringResource(id = R.string.category_repair)
+        else -> category.uppercase()
+    }
+}
+
+@Composable
+fun getLocalizedMarketName(marketName: String): String {
+    if (marketName.isBlank()) return stringResource(id = R.string.market_saddar)
+    return when {
+        marketName.contains("Star City", ignoreCase = true) -> stringResource(id = R.string.market_star_city)
+        marketName.contains("Saddar", ignoreCase = true) -> stringResource(id = R.string.market_saddar)
+        else -> marketName
+    }
+}
+
